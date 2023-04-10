@@ -8,18 +8,20 @@ using CSharpFunctionalExtensions;
 
 public class CalculateOrderCostFactoryTests
 {
-    [Theory, MemberData(nameof(ParcelsWithDefaultValues))]
-    public void ToOrderCostResponse_ParcelsHaveDefaultValues_ReturnsDefaultProperties(List<Parcel> parcels)
-        => parcels.ToOrderCostResponse()
+    [Theory, MemberData(nameof(OrderParcelsWithDefaultValues))]
+    public void ToOrderCostResponse_ParcelsHaveDefaultValues_ReturnsDefaultProperties(Order order)
+        => order.ToOrderCostResponse()
         .Should().Match<CalculateOrderCostResponse>(r =>
             r.Parcels.Count == 0
+            && r.SpeedyShipping == order.SpeedyShipping
+            && r.SpeedyShippingCost == 0
             && r.TotalCost == 0);
 
-    public static IEnumerable<object[]> ParcelsWithDefaultValues =>
+    public static IEnumerable<object[]> OrderParcelsWithDefaultValues =>
         new List<object[]>
         {
-            new object[] { null! },
-            new object[] { new List<Parcel>() },
+            new object[] { new Order(null!, new Fixture().Create<bool>()) },
+            new object[] { new Order(new List<Parcel>(), new Fixture().Create<bool>()) },
         };
 
     [Fact]
@@ -33,12 +35,20 @@ public class CalculateOrderCostFactoryTests
             .CreateMany(parcelSize, new Random().Next(1, 5))
             .ToList();
 
+        Order order = new(parcels, fixture.Create<bool>());
+
         // Act
-        var orderCostResponse = parcels.ToOrderCostResponse();
+        var orderCostResponse = order.ToOrderCostResponse();
 
         // Assert
+        var parcelsCost = parcels.Count * parcels.First().GetCost();
+        var speedyShippingCost = order.SpeedyShipping ? parcelsCost : 0;
+        var totalCost = parcelsCost + speedyShippingCost;
+
         orderCostResponse.Should().Match<CalculateOrderCostResponse>(r =>
-            r.TotalCost == parcels.Count * parcels.First().GetCost()
+            r.SpeedyShipping == order.SpeedyShipping
+            && r.SpeedyShippingCost == speedyShippingCost
+            && r.TotalCost == totalCost
             && r.Parcels.Count == parcels.Count);
 
         orderCostResponse.Parcels
@@ -47,9 +57,11 @@ public class CalculateOrderCostFactoryTests
     }
 
     [Theory, MemberData(nameof(CommandWithDefaultValues))]
-    public void ToParcels_CommandHasDefaultValues_ReturnsEmpty(CalculateOrderCostCommand command)
-        => command.ToParcels()
-        .Should().BeEmpty();
+    public void ToOrder_CommandHasDefaultValues_ReturnsEmpty(CalculateOrderCostCommand command)
+        => command.ToOrder()
+        .Should().Match<Order>(o =>
+            !o.Parcels.Any()
+            && !o.SpeedyShipping);
 
     public static IEnumerable<object[]> CommandWithDefaultValues =>
         new List<object[]>
@@ -58,8 +70,9 @@ public class CalculateOrderCostFactoryTests
             new object[] { new CalculateOrderCostCommand() },
         };
 
-    [Fact]
-    public void ToParcels_CommandHasSeveralParcels_ReturnsSameAmountOfParcels()
+    [Theory]
+    [InlineData(true), InlineData(false)]
+    public void ToOrder_CommandHasSeveralParcels_ReturnsSameAmountOfParcels(bool speedyShipping)
     {
         // Arrange
         Fixture fixture = new();
@@ -73,10 +86,16 @@ public class CalculateOrderCostFactoryTests
         parcelRequests.AddRange(parcelsRequest1);
         parcelRequests.AddRange(parcelsRequest2);
 
-        CalculateOrderCostCommand command = new() { Parcels = parcelRequests };
+        CalculateOrderCostCommand command = new()
+        {
+            Parcels = parcelRequests,
+            SpeedyShipping = speedyShipping
+        };
 
         // Act, Assert
-        command.ToParcels()
-            .Should().HaveCount(parcelRequests.Count);
+        command.ToOrder()
+            .Should().Match<Order>(o =>
+                o.SpeedyShipping == speedyShipping
+                && o.Parcels.Count == parcelRequests.Count);
     }
 }

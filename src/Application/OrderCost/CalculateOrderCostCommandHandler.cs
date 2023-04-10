@@ -7,12 +7,12 @@ public static class CalculateOrderCostCommandHandler
 {
     public static Result<CalculateOrderCostResponse, Error> Handle(CalculateOrderCostCommand calculateOrderCostCommand)
     {
-        var parcels = calculateOrderCostCommand.ToParcels();
+        var order = calculateOrderCostCommand.ToOrder();
 
-        var validationResult = Parcel.Validate(parcels);
+        var validationResult = order.Validate();
         if (validationResult.IsFailure)
             return validationResult.Error;
 
-        return parcels.ToOrderCostResponse();
+        return order.ToOrderCostResponse();
     }
 }

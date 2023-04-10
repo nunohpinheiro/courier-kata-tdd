@@ -3,6 +3,7 @@ namespace CourierKata.Application.OrderCost;
 public record CalculateOrderCostCommand
 {
     public IEnumerable<ParcelRequest> Parcels { get; init; } = Enumerable.Empty<ParcelRequest>();
+    public bool SpeedyShipping { get; init; }
 }
 
 public record ParcelRequest

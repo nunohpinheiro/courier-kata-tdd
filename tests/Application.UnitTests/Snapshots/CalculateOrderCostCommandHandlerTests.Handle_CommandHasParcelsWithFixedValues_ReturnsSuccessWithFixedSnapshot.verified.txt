@@ -17,5 +17,7 @@
       ParcelSize: ExtraLarge
     }
   ],
-  TotalCost: 51
+  SpeedyShipping: true,
+  SpeedyShippingCost: 51,
+  TotalCost: 102
 }

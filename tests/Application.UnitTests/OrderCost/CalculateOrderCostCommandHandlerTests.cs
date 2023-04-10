@@ -70,21 +70,28 @@ public class CalculateOrderCostCommandHandlerTests
 
     [Theory, MemberData(nameof(CommandWithParcelsOfSameDimension))]
     public void Handle_CommandHasParcelsOfSameDimension_ReturnsSuccessWithMatchingResponse(
-        ParcelSize parcelSize, int parcelsCount, int expectedParcelPrice)
+        ParcelSize parcelSize, int parcelsCount, int expectedParcelPrice, bool speedyShipping)
     {
         // Arrange
         CalculateOrderCostCommand command = new()
         {
-            Parcels = ParcelRequestFixtureFactory.CreateMany(parcelSize, parcelsCount)
+            Parcels = ParcelRequestFixtureFactory.CreateMany(parcelSize, parcelsCount),
+            SpeedyShipping = speedyShipping
         };
 
         // Act
         var result = CalculateOrderCostCommandHandler.Handle(command);
 
         // Assert
+        var parcelsCost = parcelsCount * expectedParcelPrice;
+        var speedyShippingCost = command.SpeedyShipping ? parcelsCost : 0;
+        var totalCost = parcelsCost + speedyShippingCost;
+
         result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
             r.IsSuccess
-            && r.Value.TotalCost == parcelsCount * expectedParcelPrice
+            && r.Value.SpeedyShipping == command.SpeedyShipping
+            && r.Value.SpeedyShippingCost == speedyShippingCost
+            && r.Value.TotalCost == totalCost
             && r.Value.Parcels.Count == command.Parcels.Count());
 
         AssertParcelsGroup(result, parcelSize, parcelsCount);
@@ -93,14 +100,15 @@ public class CalculateOrderCostCommandHandlerTests
     public static IEnumerable<object[]> CommandWithParcelsOfSameDimension =>
         new List<object[]>
         {
-            new object[] { ParcelSize.Small, new Random().Next(1, 5), GetParcelPrice(ParcelSize.Small) },
-            new object[] { ParcelSize.Medium, new Random().Next(1, 5), GetParcelPrice(ParcelSize.Medium) },
-            new object[] { ParcelSize.Large, new Random().Next(1, 5), GetParcelPrice(ParcelSize.Large) },
-            new object[] { ParcelSize.ExtraLarge, new Random().Next(1, 5), GetParcelPrice(ParcelSize.ExtraLarge) },
+            new object[] { ParcelSize.Small, new Random().Next(1, 5), GetParcelPrice(ParcelSize.Small), new Fixture().Create<bool>() },
+            new object[] { ParcelSize.Medium, new Random().Next(1, 5), GetParcelPrice(ParcelSize.Medium), new Fixture().Create<bool>() },
+            new object[] { ParcelSize.Large, new Random().Next(1, 5), GetParcelPrice(ParcelSize.Large), new Fixture().Create<bool>() },
+            new object[] { ParcelSize.ExtraLarge, new Random().Next(1, 5), GetParcelPrice(ParcelSize.ExtraLarge), new Fixture().Create<bool>() },
         };
 
-    [Fact]
-    public void Handle_CommandHasParcelsWithDifferentDimensions_ReturnsSuccessWithMatchingResponse()
+    [Theory]
+    [InlineData(true), InlineData(false)]
+    public void Handle_CommandHasParcelsWithDifferentDimensions_ReturnsSuccessWithMatchingResponse(bool speedyShipping)
     {
         // Arrange
         (IEnumerable<ParcelRequest> smallParcels, int smallParcelsCount) = CreateParcelFixtures(ParcelSize.Small);
@@ -108,10 +116,12 @@ public class CalculateOrderCostCommandHandlerTests
         (IEnumerable<ParcelRequest> largeParcels, int largeParcelsCount) = CreateParcelFixtures(ParcelSize.Large);
         (IEnumerable<ParcelRequest> extraLargeParcels, int extraLargeParcelsCount) = CreateParcelFixtures(ParcelSize.ExtraLarge);
 
-        var expectedTotalCost = smallParcelsCount * GetParcelPrice(ParcelSize.Small)
+        var expectedParcelsCost = smallParcelsCount * GetParcelPrice(ParcelSize.Small)
             + mediumParcelsCount * GetParcelPrice(ParcelSize.Medium)
             + largeParcelsCount * GetParcelPrice(ParcelSize.Large)
             + extraLargeParcelsCount * GetParcelPrice(ParcelSize.ExtraLarge);
+        var expectedSpeedyShippingCost = speedyShipping ? expectedParcelsCost : 0;
+        var expectedTotalCost = expectedParcelsCost + expectedSpeedyShippingCost;
 
         List<ParcelRequest> parcelRequests = new();
         parcelRequests.AddRange(smallParcels);
@@ -119,7 +129,11 @@ public class CalculateOrderCostCommandHandlerTests
         parcelRequests.AddRange(largeParcels);
         parcelRequests.AddRange(extraLargeParcels);
 
-        CalculateOrderCostCommand command = new() { Parcels = parcelRequests };
+        CalculateOrderCostCommand command = new()
+        {
+            Parcels = parcelRequests,
+            SpeedyShipping = speedyShipping
+        };
 
         // Act
         var result = CalculateOrderCostCommandHandler.Handle(command);
@@ -127,6 +141,8 @@ public class CalculateOrderCostCommandHandlerTests
         // Assert
         result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
             r.IsSuccess
+            && r.Value.SpeedyShipping == speedyShipping
+            && r.Value.SpeedyShippingCost == expectedSpeedyShippingCost
             && r.Value.TotalCost == expectedTotalCost
             && r.Value.Parcels.Count == command.Parcels.Count());
 
@@ -140,11 +156,6 @@ public class CalculateOrderCostCommandHandlerTests
     public async Task Handle_CommandHasParcelsWithFixedValues_ReturnsSuccessWithFixedSnapshot()
     {
         // Arrange
-        var expectedTotalCost = GetParcelPrice(ParcelSize.Small)
-            + GetParcelPrice(ParcelSize.Medium)
-            + GetParcelPrice(ParcelSize.Large)
-            + GetParcelPrice(ParcelSize.ExtraLarge);
-
         CalculateOrderCostCommand command = new()
         {
             Parcels = new List<ParcelRequest>(4)
@@ -153,8 +164,16 @@ public class CalculateOrderCostCommandHandlerTests
                 new(){ Length = 11, Width = 12, Height = 13 },
                 new(){ Length = 51, Width = 52, Height = 53 },
                 new(){ Length = 101, Width = 102, Height = 103 },
-            }
+            },
+            SpeedyShipping = true
         };
+
+        var expectedSpeedyShippingCost = GetParcelPrice(ParcelSize.Small)
+            + GetParcelPrice(ParcelSize.Medium)
+            + GetParcelPrice(ParcelSize.Large)
+            + GetParcelPrice(ParcelSize.ExtraLarge);
+
+        var expectedTotalCost = expectedSpeedyShippingCost * 2;
 
         // Act
         var result = CalculateOrderCostCommandHandler.Handle(command);
@@ -162,6 +181,8 @@ public class CalculateOrderCostCommandHandlerTests
         // Assert
         result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
             r.IsSuccess
+            && r.Value.SpeedyShipping == command.SpeedyShipping
+            && r.Value.SpeedyShippingCost == expectedSpeedyShippingCost
             && r.Value.TotalCost == expectedTotalCost
             && r.Value.Parcels.Count == command.Parcels.Count());
 
