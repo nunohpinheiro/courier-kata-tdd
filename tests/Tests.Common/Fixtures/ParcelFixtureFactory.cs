@@ -6,7 +6,7 @@ using CourierKata.Domain.ValueObjects;
 
 public static class ParcelFixtureFactory
 {
-    public static Parcel Create(ParcelSize parcelSize = default, int weight = 1)
+    public static Parcel Create(ParcelSize parcelSize = default, int weight = 1, bool heavyParcel = false)
     {
         var minSize = parcelSize switch
         {
@@ -26,7 +26,8 @@ public static class ParcelFixtureFactory
             length: new Random().Next(minSize, maxSize),
             width: new Random().Next(minSize, maxSize),
             height: new Random().Next(minSize, maxSize),
-            weight: weight);
+            weight: weight,
+            heavyParcel: heavyParcel);
     }
 
     public static Parcel CreateInvalid()
@@ -41,11 +42,11 @@ public static class ParcelFixtureFactory
     }
 
     public static IEnumerable<Parcel> CreateMany(
-        ParcelSize parcelSize = default, int parcelsCount = 2, int weight = 1)
+        ParcelSize parcelSize = default, int parcelsCount = 2, int weight = 1, bool heavyParcel = false)
     {
         for (int i = 0; i < parcelsCount; i++)
         {
-            yield return Create(parcelSize, weight);
+            yield return Create(parcelSize, weight, heavyParcel);
         }
     }
 

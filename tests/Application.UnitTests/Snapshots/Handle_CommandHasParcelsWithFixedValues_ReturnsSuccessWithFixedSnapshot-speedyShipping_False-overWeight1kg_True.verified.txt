@@ -3,22 +3,26 @@
     {
       ParcelCost: 5,
       ParcelSize: Small,
-      IsOverWeight: true
+      IsOverWeight: true,
+      HeavyParcel: false
     },
     {
       ParcelCost: 10,
       ParcelSize: Medium,
-      IsOverWeight: true
+      IsOverWeight: true,
+      HeavyParcel: false
     },
     {
       ParcelCost: 17,
       ParcelSize: Large,
-      IsOverWeight: true
+      IsOverWeight: true,
+      HeavyParcel: false
     },
     {
       ParcelCost: 27,
       ParcelSize: ExtraLarge,
-      IsOverWeight: true
+      IsOverWeight: true,
+      HeavyParcel: false
     }
   ],
   SpeedyShipping: false,

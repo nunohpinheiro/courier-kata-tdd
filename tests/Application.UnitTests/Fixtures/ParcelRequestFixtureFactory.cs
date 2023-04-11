@@ -5,7 +5,8 @@ using CourierKata.Domain.Models;
 
 internal static class ParcelRequestFixtureFactory
 {
-    internal static ParcelRequest Create(ParcelSize parcelSize = default, int weight = 1)
+    internal static ParcelRequest Create(
+        ParcelSize parcelSize = default, int weight = 1, bool heavyParcel = false)
     {
         var minSize = parcelSize switch
         {
@@ -27,6 +28,7 @@ internal static class ParcelRequestFixtureFactory
             Width = new Random().Next(minSize, maxSize),
             Height = new Random().Next(minSize, maxSize),
             Weight = weight,
+            HeavyParcel = heavyParcel
         };
     }
 
@@ -42,11 +44,11 @@ internal static class ParcelRequestFixtureFactory
     }
 
     internal static IEnumerable<ParcelRequest> CreateMany(
-        ParcelSize parcelSize = default, int parcelsCount = 2, int weight = 1)
+        ParcelSize parcelSize = default, int parcelsCount = 2, int weight = 1, bool heavyParcel = false)
     {
         for (int i = 0; i < parcelsCount; i++)
         {
-            yield return Create(parcelSize, weight);
+            yield return Create(parcelSize, weight, heavyParcel);
         }
     }
 

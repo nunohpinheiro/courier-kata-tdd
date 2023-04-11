@@ -12,4 +12,5 @@ public record ParcelRequest
     public decimal Width { get; init; }
     public decimal Height { get; init; }
     public int Weight { get; init; }
+    public bool HeavyParcel { get; init; }
 }

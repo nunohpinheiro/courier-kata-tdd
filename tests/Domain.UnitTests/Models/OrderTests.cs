@@ -26,7 +26,8 @@ public class OrderTests
                             new Random().Next(int.MinValue, 1),
                             new Random().Next(1, int.MaxValue),
                             new Random().Next(1, int.MaxValue),
-                            new Random().Next(1, int.MaxValue))
+                            new Random().Next(1, int.MaxValue),
+                            new Fixture().Create<bool>())
                     },
                     new Fixture().Create<bool>())
             },
@@ -39,7 +40,8 @@ public class OrderTests
                             new Random().Next(1, int.MaxValue),
                             new Random().Next(1, int.MaxValue),
                             new Random().Next(int.MinValue, 1),
-                            new Random().Next(1, int.MaxValue)),
+                            new Random().Next(1, int.MaxValue),
+                            new Fixture().Create<bool>()),
                         ParcelFixtureFactory.Create()
                     },
                     new Fixture().Create<bool>())

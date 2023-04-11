@@ -16,6 +16,7 @@ public record Parcel
     public PositiveDecimal Width { get; init; }
     public PositiveDecimal Height { get; init; }
     public PositiveInteger Weight { get; init; }
+    public bool HeavyParcel { get; init; }
 
     public int Cost => Size switch
     {
@@ -26,9 +27,10 @@ public record Parcel
         _ => throw new UnreachableException("Unexpected parcel size was provided")
     };
 
-    public bool IsOverWeight => GetWeightCost() switch
+    public bool IsOverWeight => HeavyParcel switch
     {
-        > 0 => true,
+        false when GetWeightCost() > 0 => true,
+        true when GetWeightCost() > 50 => true,
         _ => false
     };
 
@@ -45,12 +47,13 @@ public record Parcel
     }
 
     public Parcel(
-        decimal length, decimal width, decimal height, int weight)
+        decimal length, decimal width, decimal height, int weight, bool heavyParcel)
     {
         Length = length;
         Width = width;
         Height = height;
         Weight = weight;
+        HeavyParcel = heavyParcel;
     }
 
     public Result<Success, Error> Validate()
@@ -82,7 +85,9 @@ public record Parcel
     }
 
     private int GetWeightCost()
-        => Size switch
+        => HeavyParcel
+        ? GetHeavyParcelWeightCost()
+        : Size switch
         {
             ParcelSize.Small when Weight > 1 => GetWeightCostBySize(1),
             ParcelSize.Medium when Weight > 3 => GetWeightCostBySize(3),
@@ -90,6 +95,9 @@ public record Parcel
             ParcelSize.ExtraLarge when Weight > 10 => GetWeightCostBySize(10),
             _ => 0
         };
+
+    private int GetHeavyParcelWeightCost()
+        => 50 + (Weight > 50 ? Weight - 50 : 0);
 
     private int GetWeightCostBySize(int weightBoundary)
         => 2 * (Weight - weightBoundary);

@@ -9,22 +9,23 @@ public class ParcelTests
 {
     [Theory, MemberData(nameof(ParcelsWithExpectedSizesAndWeights))]
     public void Cost_ParcelHasSpecificSizeAndWeight_ReturnsMatchingParcelCost_DependsOnOverWeight(
-        Parcel parcel, ParcelSize expectedParcelSize, int weight, bool isOverWeight)
+        Parcel parcel, ParcelSize expectedParcelSize, int weight, bool isOverWeight, bool heavyParcel)
         => parcel.Should().Match<Parcel>(p =>
-            p.Cost == GetParcelPrice(expectedParcelSize, weight)
-            && p.IsOverWeight == isOverWeight);
+            p.Cost == GetParcelPrice(expectedParcelSize, weight, heavyParcel)
+            && p.IsOverWeight == isOverWeight
+            && p.HeavyParcel == heavyParcel);
 
     public static IEnumerable<object[]> ParcelsWithExpectedSizesAndWeights =>
         new List<object[]>
         {
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.Small, 1), ParcelSize.Small, 1, false },
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.Small, 2), ParcelSize.Small, 2, true },
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.Medium, 3), ParcelSize.Medium, 3, false },
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.Medium, 4), ParcelSize.Medium, 4, true },
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.Large, 6), ParcelSize.Large, 6, false },
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.Large, 7), ParcelSize.Large, 7, true },
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.ExtraLarge, 10), ParcelSize.ExtraLarge, 10, false },
-            new object[] { ParcelFixtureFactory.Create(ParcelSize.ExtraLarge, 11), ParcelSize.ExtraLarge, 11, true }
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.Small, 1, false), ParcelSize.Small, 1, false, false },
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.Small, 78, true), ParcelSize.Small, 78, true, true },
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.Medium, 50, true), ParcelSize.Medium, 50, false, true },
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.Medium, 4, false), ParcelSize.Medium, 4, true, false },
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.Large, 6, false), ParcelSize.Large, 6, false, false },
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.Large, 51, true), ParcelSize.Large, 51, true, true },
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.ExtraLarge, 10, false), ParcelSize.ExtraLarge, 10, false, false },
+            new object[] { ParcelFixtureFactory.Create(ParcelSize.ExtraLarge, 101, true), ParcelSize.ExtraLarge, 101, true, true }
         };
 
     [Theory, MemberData(nameof(ParcelsWithExpectedSizes))]
@@ -56,22 +57,26 @@ public class ParcelTests
                 new Random().Next(int.MinValue, 1),
                 new Random().Next(1, int.MaxValue),
                 new Random().Next(1, int.MaxValue),
-                new Random().Next(1, int.MaxValue)) },
+                new Random().Next(1, int.MaxValue),
+                new Fixture().Create<bool>()) },
             new object[] { new Parcel(
                 new Random().Next(1, int.MaxValue),
                 new Random().Next(int.MinValue, 1),
                 new Random().Next(1, int.MaxValue),
-                new Random().Next(1, int.MaxValue)) },
+                new Random().Next(1, int.MaxValue),
+                new Fixture().Create<bool>()) },
             new object[] { new Parcel(
                 new Random().Next(1, int.MaxValue),
                 new Random().Next(1, int.MaxValue),
                 new Random().Next(int.MinValue, 1),
-                new Random().Next(1, int.MaxValue)) },
+                new Random().Next(1, int.MaxValue),
+                new Fixture().Create<bool>()) },
             new object[] { new Parcel(
                 new Random().Next(1, int.MaxValue),
                 new Random().Next(1, int.MaxValue),
                 new Random().Next(1, int.MaxValue),
-                new Random().Next(int.MinValue, 1)) }
+                new Random().Next(int.MinValue, 1),
+                new Fixture().Create<bool>()) }
         };
 
     [Fact]
@@ -110,7 +115,8 @@ public class ParcelTests
                         new Random().Next(int.MinValue, 1),
                         new Random().Next(1, int.MaxValue),
                         new Random().Next(1, int.MaxValue),
-                        new Random().Next(1, int.MaxValue))
+                        new Random().Next(1, int.MaxValue),
+                        new Fixture().Create<bool>())
                 }
             },
             new object[]
@@ -121,7 +127,8 @@ public class ParcelTests
                         new Random().Next(1, int.MaxValue),
                         new Random().Next(1, int.MaxValue),
                         new Random().Next(int.MinValue, 1),
-                        new Random().Next(1, int.MaxValue)),
+                        new Random().Next(1, int.MaxValue),
+                        new Fixture().Create<bool>()),
                     ParcelFixtureFactory.Create()
                 }
             },
@@ -164,17 +171,22 @@ public class ParcelTests
             ParcelFixtureFactory.CreateMany(parcelSize).ToList())
         .Should().Match<Result<Success, Error>>(r => r.IsSuccess);
 
-    private static int GetParcelPrice(ParcelSize parcelSize, int weight)
+    private static int GetParcelPrice(ParcelSize parcelSize, int weight, bool heavyParcel)
         => parcelSize switch
         {
-            ParcelSize.Small => 3 + GetWeightCost(parcelSize, weight),
-            ParcelSize.Medium => 8 + GetWeightCost(parcelSize, weight),
-            ParcelSize.Large => 15 + GetWeightCost(parcelSize, weight),
-            _ => 25 + GetWeightCost(parcelSize, weight)
+            ParcelSize.Small => 3 + GetWeightCost(parcelSize, weight, heavyParcel),
+            ParcelSize.Medium => 8 + GetWeightCost(parcelSize, weight, heavyParcel),
+            ParcelSize.Large => 15 + GetWeightCost(parcelSize, weight, heavyParcel),
+            _ => 25 + GetWeightCost(parcelSize, weight, heavyParcel)
         };
 
-    private static int GetWeightCost(ParcelSize parcelSize, int weight)
-        => parcelSize switch
+    private static int GetHeavyParcelWeightCost(int weight)
+        => 50 + (weight > 50 ? weight - 50 : 0);
+
+    private static int GetWeightCost(ParcelSize parcelSize, int weight, bool heavyParcel)
+        => heavyParcel
+        ? GetHeavyParcelWeightCost(weight)
+        : parcelSize switch
         {
             ParcelSize.Small when weight > 1 => GetWeightCostBySize(weight, 1),
             ParcelSize.Medium when weight > 3 => GetWeightCostBySize(weight, 3),

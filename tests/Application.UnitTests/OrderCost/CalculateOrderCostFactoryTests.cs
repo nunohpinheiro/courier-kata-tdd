@@ -56,16 +56,17 @@ public class CalculateOrderCostFactoryTests
             .Should().HaveCount(parcels.Count);
     }
 
-    [Fact]
-    public void ToOrderCostResponse_ParcelIsOverWeight_ReturnsMatchingResponse()
+    [Theory]
+    [InlineData(true), InlineData(false)]
+    public void ToOrderCostResponse_ParcelsAreOverWeight_ReturnsMatchingResponse(bool heavyParcel)
     {
         // Arrange
         Fixture fixture = new();
         var parcelSize = ParcelSize.Small;
-        var parcelWeight = new Random().Next(2, 50); // Small parcels are over weight when weight > 1kg
+        var parcelWeight = new Random().Next(51, 1000); // Higher underweight limit is 50kg
 
         var parcels = ParcelFixtureFactory
-            .CreateMany(parcelSize, new Random().Next(1, 5), parcelWeight)
+            .CreateMany(parcelSize, new Random().Next(1, 5), parcelWeight, heavyParcel)
             .ToList();
 
         Order order = new(parcels, fixture.Create<bool>());
@@ -88,7 +89,8 @@ public class CalculateOrderCostFactoryTests
             .Where(p =>
                 p.ParcelSize.Equals(parcelSize.ToString())
                 && p.ParcelCost == parcels.First().Cost
-                && p.IsOverWeight)
+                && p.IsOverWeight
+                && p.HeavyParcel == heavyParcel)
             .Should().HaveCount(parcels.Count);
     }
 

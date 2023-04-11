@@ -168,7 +168,7 @@ public class CalculateOrderCostCommandHandlerTests
                 new(){ Length = 1, Width = 2, Height = 3, Weight = overWeight1kg ? 2 : 1 },
                 new(){ Length = 11, Width = 12, Height = 13, Weight = overWeight1kg ? 4 : 3 },
                 new(){ Length = 51, Width = 52, Height = 53, Weight = overWeight1kg ? 7 : 6 },
-                new(){ Length = 101, Width = 102, Height = 103, Weight = overWeight1kg ? 11 : 10 },
+                new(){ Length = 101, Width = 102, Height = 103, Weight = overWeight1kg ? 11 : 10 }
             },
             SpeedyShipping = speedyShipping
         };
@@ -195,6 +195,49 @@ public class CalculateOrderCostCommandHandlerTests
             .UseDirectory(SnapshotFilesPath)
             .UseFileName(
                 nameof(Handle_CommandHasParcelsWithFixedValues_ReturnsSuccessWithFixedSnapshot) +
+                $"-speedyShipping_{speedyShipping}" +
+                $"-overWeight1kg_{overWeight1kg}");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Handle_CommandHasHeavyParcelWithFixedValues_ReturnsSuccessWithFixedSnapshot(
+        bool speedyShipping, bool overWeight1kg)
+    {
+        // Arrange
+        CalculateOrderCostCommand command = new()
+        {
+            Parcels = new List<ParcelRequest>(4)
+            {
+                new(){ Length = 1, Width = 2, Height = 3, Weight = overWeight1kg ? 2 : 1, HeavyParcel = false },
+                new(){ Length = 11, Width = 12, Height = 13, Weight = overWeight1kg ? 51 : 50, HeavyParcel = true }
+            },
+            SpeedyShipping = speedyShipping
+        };
+
+        var expectedParcelsCost = GetParcelPrice(ParcelSize.Small, overWeight1kg)
+            + GetHeavyParcelPrice(ParcelSize.Medium, overWeight1kg);
+        var expectedSpeedyShippingCost = speedyShipping ? expectedParcelsCost : 0;
+        var expectedTotalCost = expectedParcelsCost + expectedSpeedyShippingCost;
+
+        // Act
+        var result = CalculateOrderCostCommandHandler.Handle(command);
+
+        // Assert
+        result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
+            r.IsSuccess
+            && r.Value.SpeedyShipping == command.SpeedyShipping
+            && r.Value.SpeedyShippingCost == expectedSpeedyShippingCost
+            && r.Value.TotalCost == expectedTotalCost
+            && r.Value.Parcels.Count == command.Parcels.Count());
+
+        await Verify(result.Value)
+            .UseDirectory(SnapshotFilesPath)
+            .UseFileName(
+                nameof(Handle_CommandHasHeavyParcelWithFixedValues_ReturnsSuccessWithFixedSnapshot) +
                 $"-speedyShipping_{speedyShipping}" +
                 $"-overWeight1kg_{overWeight1kg}");
     }
@@ -234,5 +277,18 @@ public class CalculateOrderCostCommandHandlerTests
         };
 
         return overWeight1kg ? basePrice + 2 : basePrice;
+    }
+
+    private static int GetHeavyParcelPrice(ParcelSize parcelSize, bool overWeight1kg)
+    {
+        var basePrice = 50 + parcelSize switch
+        {
+            ParcelSize.Small => 3,
+            ParcelSize.Medium => 8,
+            ParcelSize.Large => 15,
+            _ => 25
+        };
+
+        return overWeight1kg ? basePrice + 1 : basePrice;
     }
 }
