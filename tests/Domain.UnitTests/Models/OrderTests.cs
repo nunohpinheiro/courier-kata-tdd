@@ -25,6 +25,7 @@ public class OrderTests
                         new Parcel(
                             new Random().Next(int.MinValue, 1),
                             new Random().Next(1, int.MaxValue),
+                            new Random().Next(1, int.MaxValue),
                             new Random().Next(1, int.MaxValue))
                     },
                     new Fixture().Create<bool>())
@@ -35,6 +36,7 @@ public class OrderTests
                     new List<Parcel>(2)
                     {
                         new Parcel(
+                            new Random().Next(1, int.MaxValue),
                             new Random().Next(1, int.MaxValue),
                             new Random().Next(int.MinValue, 1),
                             new Random().Next(1, int.MaxValue)),

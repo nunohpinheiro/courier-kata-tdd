@@ -5,7 +5,7 @@ using CourierKata.Domain.Models;
 
 internal static class ParcelRequestFixtureFactory
 {
-    internal static ParcelRequest Create(ParcelSize parcelSize = default)
+    internal static ParcelRequest Create(ParcelSize parcelSize = default, int weight = 1)
     {
         var minSize = parcelSize switch
         {
@@ -26,6 +26,7 @@ internal static class ParcelRequestFixtureFactory
             Length = new Random().Next(minSize, maxSize),
             Width = new Random().Next(minSize, maxSize),
             Height = new Random().Next(minSize, maxSize),
+            Weight = weight,
         };
     }
 
@@ -33,21 +34,22 @@ internal static class ParcelRequestFixtureFactory
     {
         var fixture = new Fixture();
         fixture.Customize<ParcelRequest>(comp => comp
-            .With(p => p.Length, GetNegativeDecimal)
-            .With(p => p.Width, GetNegativeDecimal)
-            .With(p => p.Height, GetNegativeDecimal));
+            .With(p => p.Length, GetNonPositiveDecimal)
+            .With(p => p.Width, GetNonPositiveDecimal)
+            .With(p => p.Height, GetNonPositiveDecimal)
+            .With(p => p.Weight, (int)GetNonPositiveDecimal()));
         return fixture.Create<ParcelRequest>();
     }
 
     internal static IEnumerable<ParcelRequest> CreateMany(
-        ParcelSize parcelSize = default, int parcelsCount = 2)
+        ParcelSize parcelSize = default, int parcelsCount = 2, int weight = 1)
     {
         for (int i = 0; i < parcelsCount; i++)
         {
-            yield return Create(parcelSize);
+            yield return Create(parcelSize, weight);
         }
     }
 
-    private static decimal GetNegativeDecimal()
+    private static decimal GetNonPositiveDecimal()
         => new Random().Next(int.MinValue, 1);
 }

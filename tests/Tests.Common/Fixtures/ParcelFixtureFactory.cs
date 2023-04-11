@@ -6,7 +6,7 @@ using CourierKata.Domain.ValueObjects;
 
 public static class ParcelFixtureFactory
 {
-    public static Parcel Create(ParcelSize parcelSize = default)
+    public static Parcel Create(ParcelSize parcelSize = default, int weight = 1)
     {
         var minSize = parcelSize switch
         {
@@ -25,28 +25,30 @@ public static class ParcelFixtureFactory
         return new(
             length: new Random().Next(minSize, maxSize),
             width: new Random().Next(minSize, maxSize),
-            height: new Random().Next(minSize, maxSize));
+            height: new Random().Next(minSize, maxSize),
+            weight: weight);
     }
 
     public static Parcel CreateInvalid()
     {
         var fixture = new Fixture();
         fixture.Customize<Parcel>(comp => comp
-            .With(p => p.Length, PositiveDecimal.From(GetNegativeDecimal()))
-            .With(p => p.Width, PositiveDecimal.From(GetNegativeDecimal()))
-            .With(p => p.Height, PositiveDecimal.From(GetNegativeDecimal())));
+            .With(p => p.Length, PositiveDecimal.From(GetNonPositiveDecimal()))
+            .With(p => p.Width, PositiveDecimal.From(GetNonPositiveDecimal()))
+            .With(p => p.Height, PositiveDecimal.From(GetNonPositiveDecimal()))
+            .With(p => p.Weight, PositiveInteger.From((int)GetNonPositiveDecimal())));
         return fixture.Create<Parcel>();
     }
 
     public static IEnumerable<Parcel> CreateMany(
-        ParcelSize parcelSize = default, int parcelsCount = 2)
+        ParcelSize parcelSize = default, int parcelsCount = 2, int weight = 1)
     {
         for (int i = 0; i < parcelsCount; i++)
         {
-            yield return Create(parcelSize);
+            yield return Create(parcelSize, weight);
         }
     }
 
-    private static decimal GetNegativeDecimal()
+    private static decimal GetNonPositiveDecimal()
         => new Random().Next(int.MinValue, 1);
 }

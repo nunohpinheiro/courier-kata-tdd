@@ -1,0 +1,26 @@
+﻿{
+  Parcels: [
+    {
+      ParcelCost: 5,
+      ParcelSize: Small,
+      IsOverWeight: true
+    },
+    {
+      ParcelCost: 10,
+      ParcelSize: Medium,
+      IsOverWeight: true
+    },
+    {
+      ParcelCost: 17,
+      ParcelSize: Large,
+      IsOverWeight: true
+    },
+    {
+      ParcelCost: 27,
+      ParcelSize: ExtraLarge,
+      IsOverWeight: true
+    }
+  ],
+  SpeedyShipping: false,
+  TotalCost: 59
+}

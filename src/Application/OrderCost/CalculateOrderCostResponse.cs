@@ -12,4 +12,5 @@ public record ParcelResponse
 {
     public int ParcelCost { get; init; }
     public string ParcelSize { get; init; } = string.Empty;
+    public bool IsOverWeight { get; init; }
 }

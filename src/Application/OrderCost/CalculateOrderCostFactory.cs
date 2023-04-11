@@ -9,7 +9,7 @@ internal static class CalculateOrderCostFactory
         if (order.Parcels?.Any() is not true)
             return new() { SpeedyShipping = order.SpeedyShipping };
 
-        var parcelsCost = order.Parcels.Sum(p => p.GetCost());
+        var parcelsCost = order.Parcels.Sum(p => p.Cost);
         var speedyShippingCost = order.SpeedyShipping ? parcelsCost : 0;
         var totalCost = parcelsCost + speedyShippingCost;
 
@@ -18,8 +18,9 @@ internal static class CalculateOrderCostFactory
             Parcels = order.Parcels
                 .Select(p => new ParcelResponse
                 {
-                    ParcelCost = p.GetCost(),
-                    ParcelSize = p.GetSize().ToString()
+                    ParcelCost = p.Cost,
+                    ParcelSize = p.Size.ToString(),
+                    IsOverWeight = p.IsOverWeight
                 }).ToList()
                 .AsReadOnly(),
             SpeedyShipping = order.SpeedyShipping,
@@ -37,6 +38,6 @@ internal static class CalculateOrderCostFactory
         => calculateOrderCostCommand?.Parcels.Any() is not true
         ? Enumerable.Empty<Parcel>().ToList()
         : calculateOrderCostCommand.Parcels
-            .Select(p => new Parcel(p.Length, p.Width, p.Height))
+            .Select(p => new Parcel(p.Length, p.Width, p.Height, p.Weight))
             .ToList();
 }

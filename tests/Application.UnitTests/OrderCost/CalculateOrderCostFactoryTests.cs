@@ -41,7 +41,7 @@ public class CalculateOrderCostFactoryTests
         var orderCostResponse = order.ToOrderCostResponse();
 
         // Assert
-        var parcelsCost = parcels.Count * parcels.First().GetCost();
+        var parcelsCost = parcels.Count * parcels.First().Cost;
         var speedyShippingCost = order.SpeedyShipping ? parcelsCost : 0;
         var totalCost = parcelsCost + speedyShippingCost;
 
@@ -52,7 +52,43 @@ public class CalculateOrderCostFactoryTests
             && r.Parcels.Count == parcels.Count);
 
         orderCostResponse.Parcels
-            .Where(p => p.ParcelSize.Equals(parcelSize.ToString()) && p.ParcelCost == parcels.First().GetCost())
+            .Where(p => p.ParcelSize.Equals(parcelSize.ToString()) && p.ParcelCost == parcels.First().Cost)
+            .Should().HaveCount(parcels.Count);
+    }
+
+    [Fact]
+    public void ToOrderCostResponse_ParcelIsOverWeight_ReturnsMatchingResponse()
+    {
+        // Arrange
+        Fixture fixture = new();
+        var parcelSize = ParcelSize.Small;
+        var parcelWeight = new Random().Next(2, 50); // Small parcels are over weight when weight > 1kg
+
+        var parcels = ParcelFixtureFactory
+            .CreateMany(parcelSize, new Random().Next(1, 5), parcelWeight)
+            .ToList();
+
+        Order order = new(parcels, fixture.Create<bool>());
+
+        // Act
+        var orderCostResponse = order.ToOrderCostResponse();
+
+        // Assert
+        var parcelsCost = parcels.Count * parcels.First().Cost;
+        var speedyShippingCost = order.SpeedyShipping ? parcelsCost : 0;
+        var totalCost = parcelsCost + speedyShippingCost;
+
+        orderCostResponse.Should().Match<CalculateOrderCostResponse>(r =>
+            r.SpeedyShipping == order.SpeedyShipping
+            && r.SpeedyShippingCost == speedyShippingCost
+            && r.TotalCost == totalCost
+            && r.Parcels.Count == parcels.Count);
+
+        orderCostResponse.Parcels
+            .Where(p =>
+                p.ParcelSize.Equals(parcelSize.ToString())
+                && p.ParcelCost == parcels.First().Cost
+                && p.IsOverWeight)
             .Should().HaveCount(parcels.Count);
     }
 

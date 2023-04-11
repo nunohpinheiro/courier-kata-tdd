@@ -152,28 +152,33 @@ public class CalculateOrderCostCommandHandlerTests
         AssertParcelsGroup(result, ParcelSize.ExtraLarge, extraLargeParcelsCount);
     }
 
-    [Fact]
-    public async Task Handle_CommandHasParcelsWithFixedValues_ReturnsSuccessWithFixedSnapshot()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Handle_CommandHasParcelsWithFixedValues_ReturnsSuccessWithFixedSnapshot(
+        bool speedyShipping, bool overWeight1kg)
     {
         // Arrange
         CalculateOrderCostCommand command = new()
         {
             Parcels = new List<ParcelRequest>(4)
             {
-                new(){ Length = 1, Width = 2, Height = 3 },
-                new(){ Length = 11, Width = 12, Height = 13 },
-                new(){ Length = 51, Width = 52, Height = 53 },
-                new(){ Length = 101, Width = 102, Height = 103 },
+                new(){ Length = 1, Width = 2, Height = 3, Weight = overWeight1kg ? 2 : 1 },
+                new(){ Length = 11, Width = 12, Height = 13, Weight = overWeight1kg ? 4 : 3 },
+                new(){ Length = 51, Width = 52, Height = 53, Weight = overWeight1kg ? 7 : 6 },
+                new(){ Length = 101, Width = 102, Height = 103, Weight = overWeight1kg ? 11 : 10 },
             },
-            SpeedyShipping = true
+            SpeedyShipping = speedyShipping
         };
 
-        var expectedSpeedyShippingCost = GetParcelPrice(ParcelSize.Small)
-            + GetParcelPrice(ParcelSize.Medium)
-            + GetParcelPrice(ParcelSize.Large)
-            + GetParcelPrice(ParcelSize.ExtraLarge);
-
-        var expectedTotalCost = expectedSpeedyShippingCost * 2;
+        var expectedParcelsCost = GetParcelPrice(ParcelSize.Small, overWeight1kg)
+            + GetParcelPrice(ParcelSize.Medium, overWeight1kg)
+            + GetParcelPrice(ParcelSize.Large, overWeight1kg)
+            + GetParcelPrice(ParcelSize.ExtraLarge, overWeight1kg);
+        var expectedSpeedyShippingCost = speedyShipping ? expectedParcelsCost : 0;
+        var expectedTotalCost = expectedParcelsCost + expectedSpeedyShippingCost;
 
         // Act
         var result = CalculateOrderCostCommandHandler.Handle(command);
@@ -187,7 +192,11 @@ public class CalculateOrderCostCommandHandlerTests
             && r.Value.Parcels.Count == command.Parcels.Count());
 
         await Verify(result.Value)
-            .UseDirectory(SnapshotFilesPath);
+            .UseDirectory(SnapshotFilesPath)
+            .UseFileName(
+                nameof(Handle_CommandHasParcelsWithFixedValues_ReturnsSuccessWithFixedSnapshot) +
+                $"-speedyShipping_{speedyShipping}" +
+                $"-overWeight1kg_{overWeight1kg}");
     }
 
     private static void AssertParcelsGroup(Result<CalculateOrderCostResponse, Error> result, ParcelSize selectedParcelSize, int expectedParcelsCount)
@@ -213,4 +222,17 @@ public class CalculateOrderCostCommandHandlerTests
             ParcelSize.Large => 15,
             _ => 25
         };
+
+    private static int GetParcelPrice(ParcelSize parcelSize, bool overWeight1kg)
+    {
+        var basePrice = parcelSize switch
+        {
+            ParcelSize.Small => 3,
+            ParcelSize.Medium => 8,
+            ParcelSize.Large => 15,
+            _ => 25
+        };
+
+        return overWeight1kg ? basePrice + 2 : basePrice;
+    }
 }
