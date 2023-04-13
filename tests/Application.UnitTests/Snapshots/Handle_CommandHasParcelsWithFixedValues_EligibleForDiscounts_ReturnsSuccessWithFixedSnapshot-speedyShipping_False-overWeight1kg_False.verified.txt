@@ -1,0 +1,72 @@
+﻿{
+  Parcels: [
+    {
+      ParcelCost: 3,
+      ParcelSize: Small,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 3,
+      ParcelSize: Small,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 3,
+      ParcelSize: Small,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 3,
+      ParcelSize: Small,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 8,
+      ParcelSize: Medium,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 8,
+      ParcelSize: Medium,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 8,
+      ParcelSize: Medium,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 15,
+      ParcelSize: Large,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 25,
+      ParcelSize: ExtraLarge,
+      IsOverWeight: false,
+      HeavyParcel: false
+    },
+    {
+      ParcelCost: 25,
+      ParcelSize: ExtraLarge,
+      IsOverWeight: false,
+      HeavyParcel: false
+    }
+  ],
+  SpeedyShipping: false,
+  Discounts: [
+    Medium parcel mania! Every 3rd medium parcel in an order is free! - Discount value: 8,
+    Mixed parcel mania! Every 5th parcel in an order is free! - Discount value: 8,
+    Small parcel mania! Every 4th small parcel in an order is free! - Discount value: 3
+  ],
+  TotalDiscount: -19,
+  TotalCost: 82
+}

@@ -5,6 +5,7 @@ using CourierKata.Application.UnitTests.Fixtures;
 using CourierKata.Domain.Errors;
 using CourierKata.Domain.Models;
 using System.Reflection;
+using VerifyXunit;
 
 [UsesVerify]
 public class CalculateOrderCostCommandHandlerTests
@@ -84,14 +85,13 @@ public class CalculateOrderCostCommandHandlerTests
 
         // Assert
         var parcelsCost = parcelsCount * expectedParcelPrice;
-        var speedyShippingCost = command.SpeedyShipping ? parcelsCost : 0;
-        var totalCost = parcelsCost + speedyShippingCost;
 
         result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
             r.IsSuccess
             && r.Value.SpeedyShipping == command.SpeedyShipping
-            && r.Value.SpeedyShippingCost == speedyShippingCost
-            && r.Value.TotalCost == totalCost
+            && r.Value.TotalCost == (speedyShipping
+                ? (parcelsCost + r.Value.TotalDiscount) * 2
+                : (parcelsCost + r.Value.TotalDiscount))
             && r.Value.Parcels.Count == command.Parcels.Count());
 
         AssertParcelsGroup(result, parcelSize, parcelsCount);
@@ -120,8 +120,6 @@ public class CalculateOrderCostCommandHandlerTests
             + mediumParcelsCount * GetParcelPrice(ParcelSize.Medium)
             + largeParcelsCount * GetParcelPrice(ParcelSize.Large)
             + extraLargeParcelsCount * GetParcelPrice(ParcelSize.ExtraLarge);
-        var expectedSpeedyShippingCost = speedyShipping ? expectedParcelsCost : 0;
-        var expectedTotalCost = expectedParcelsCost + expectedSpeedyShippingCost;
 
         List<ParcelRequest> parcelRequests = new();
         parcelRequests.AddRange(smallParcels);
@@ -142,8 +140,9 @@ public class CalculateOrderCostCommandHandlerTests
         result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
             r.IsSuccess
             && r.Value.SpeedyShipping == speedyShipping
-            && r.Value.SpeedyShippingCost == expectedSpeedyShippingCost
-            && r.Value.TotalCost == expectedTotalCost
+            && r.Value.TotalCost == (speedyShipping
+                ? (expectedParcelsCost + r.Value.TotalDiscount) * 2
+                : (expectedParcelsCost + r.Value.TotalDiscount))
             && r.Value.Parcels.Count == command.Parcels.Count());
 
         AssertParcelsGroup(result, ParcelSize.Small, smallParcelsCount);
@@ -157,28 +156,40 @@ public class CalculateOrderCostCommandHandlerTests
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task Handle_CommandHasParcelsWithFixedValues_ReturnsSuccessWithFixedSnapshot(
+    public async Task Handle_CommandHasParcelsWithFixedValues_EligibleForDiscounts_ReturnsSuccessWithFixedSnapshot(
         bool speedyShipping, bool overWeight1kg)
     {
         // Arrange
         CalculateOrderCostCommand command = new()
         {
-            Parcels = new List<ParcelRequest>(4)
+            Parcels = new List<ParcelRequest>()
             {
                 new(){ Length = 1, Width = 2, Height = 3, Weight = overWeight1kg ? 2 : 1 },
+                new(){ Length = 1, Width = 2, Height = 3, Weight = overWeight1kg ? 2 : 1 },
+                new(){ Length = 1, Width = 2, Height = 3, Weight = overWeight1kg ? 2 : 1 },
+                new(){ Length = 1, Width = 2, Height = 3, Weight = overWeight1kg ? 2 : 1 },
+
                 new(){ Length = 11, Width = 12, Height = 13, Weight = overWeight1kg ? 4 : 3 },
+                new(){ Length = 11, Width = 12, Height = 13, Weight = overWeight1kg ? 4 : 3 },
+                new(){ Length = 11, Width = 12, Height = 13, Weight = overWeight1kg ? 4 : 3 },
+
                 new(){ Length = 51, Width = 52, Height = 53, Weight = overWeight1kg ? 7 : 6 },
+                new(){ Length = 101, Width = 102, Height = 103, Weight = overWeight1kg ? 11 : 10 },
                 new(){ Length = 101, Width = 102, Height = 103, Weight = overWeight1kg ? 11 : 10 }
             },
             SpeedyShipping = speedyShipping
         };
 
         var expectedParcelsCost = GetParcelPrice(ParcelSize.Small, overWeight1kg)
+            + GetParcelPrice(ParcelSize.Small, overWeight1kg)
+            + GetParcelPrice(ParcelSize.Small, overWeight1kg)
+            + GetParcelPrice(ParcelSize.Small, overWeight1kg)
+            + GetParcelPrice(ParcelSize.Medium, overWeight1kg)
+            + GetParcelPrice(ParcelSize.Medium, overWeight1kg)
             + GetParcelPrice(ParcelSize.Medium, overWeight1kg)
             + GetParcelPrice(ParcelSize.Large, overWeight1kg)
+            + GetParcelPrice(ParcelSize.ExtraLarge, overWeight1kg)
             + GetParcelPrice(ParcelSize.ExtraLarge, overWeight1kg);
-        var expectedSpeedyShippingCost = speedyShipping ? expectedParcelsCost : 0;
-        var expectedTotalCost = expectedParcelsCost + expectedSpeedyShippingCost;
 
         // Act
         var result = CalculateOrderCostCommandHandler.Handle(command);
@@ -187,14 +198,15 @@ public class CalculateOrderCostCommandHandlerTests
         result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
             r.IsSuccess
             && r.Value.SpeedyShipping == command.SpeedyShipping
-            && r.Value.SpeedyShippingCost == expectedSpeedyShippingCost
-            && r.Value.TotalCost == expectedTotalCost
+            && r.Value.TotalCost == (speedyShipping
+                ? (expectedParcelsCost + r.Value.TotalDiscount) * 2
+                : (expectedParcelsCost + r.Value.TotalDiscount))
             && r.Value.Parcels.Count == command.Parcels.Count());
 
         await Verify(result.Value)
             .UseDirectory(SnapshotFilesPath)
             .UseFileName(
-                nameof(Handle_CommandHasParcelsWithFixedValues_ReturnsSuccessWithFixedSnapshot) +
+                nameof(Handle_CommandHasParcelsWithFixedValues_EligibleForDiscounts_ReturnsSuccessWithFixedSnapshot) +
                 $"-speedyShipping_{speedyShipping}" +
                 $"-overWeight1kg_{overWeight1kg}");
     }
@@ -230,7 +242,6 @@ public class CalculateOrderCostCommandHandlerTests
         result.Should().Match<Result<CalculateOrderCostResponse, Error>>(r =>
             r.IsSuccess
             && r.Value.SpeedyShipping == command.SpeedyShipping
-            && r.Value.SpeedyShippingCost == expectedSpeedyShippingCost
             && r.Value.TotalCost == expectedTotalCost
             && r.Value.Parcels.Count == command.Parcels.Count());
 

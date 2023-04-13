@@ -1,7 +1,7 @@
 namespace CourierKata.Application.OrderCost;
 
+using CourierKata.Application.Discounts;
 using CourierKata.Domain.Errors;
-using CourierKata.Domain.Models;
 
 public static class CalculateOrderCostCommandHandler
 {
@@ -12,6 +12,11 @@ public static class CalculateOrderCostCommandHandler
         var validationResult = order.Validate();
         if (validationResult.IsFailure)
             return validationResult.Error;
+
+        var setDiscountsResult = order.SetDiscounts(
+            DiscountFactory.CreateDiscounts(order.Parcels.ToList()));
+        if (setDiscountsResult.IsFailure)
+            return setDiscountsResult.Error;
 
         return order.ToOrderCostResponse();
     }

@@ -4,7 +4,8 @@ public record CalculateOrderCostResponse
 {
     public IReadOnlyCollection<ParcelResponse> Parcels { get; init; } = Enumerable.Empty<ParcelResponse>().ToList().AsReadOnly();
     public bool SpeedyShipping { get; init; }
-    public int SpeedyShippingCost { get; init; }
+    public IReadOnlyCollection<string> Discounts { get; init; } = Enumerable.Empty<string>().ToList().AsReadOnly();
+    public int TotalDiscount { get; init; }
     public int TotalCost { get; init; }
 }
 

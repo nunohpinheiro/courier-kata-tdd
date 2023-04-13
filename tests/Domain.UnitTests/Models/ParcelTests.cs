@@ -13,7 +13,8 @@ public class ParcelTests
         => parcel.Should().Match<Parcel>(p =>
             p.Cost == GetParcelPrice(expectedParcelSize, weight, heavyParcel)
             && p.IsOverWeight == isOverWeight
-            && p.HeavyParcel == heavyParcel);
+            && p.HeavyParcel == heavyParcel
+            && p.Id != Guid.Empty);
 
     public static IEnumerable<object[]> ParcelsWithExpectedSizesAndWeights =>
         new List<object[]>

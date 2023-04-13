@@ -5,15 +5,7 @@ using CourierKata.Domain.Models;
 internal static class CalculateOrderCostFactory
 {
     internal static CalculateOrderCostResponse ToOrderCostResponse(this Order order)
-    {
-        if (order.Parcels?.Any() is not true)
-            return new() { SpeedyShipping = order.SpeedyShipping };
-
-        var parcelsCost = order.Parcels.Sum(p => p.Cost);
-        var speedyShippingCost = order.SpeedyShipping ? parcelsCost : 0;
-        var totalCost = parcelsCost + speedyShippingCost;
-
-        return new()
+        => new()
         {
             Parcels = order.Parcels
                 .Select(p => new ParcelResponse
@@ -25,10 +17,12 @@ internal static class CalculateOrderCostFactory
                 }).ToList()
                 .AsReadOnly(),
             SpeedyShipping = order.SpeedyShipping,
-            SpeedyShippingCost = speedyShippingCost,
-            TotalCost = totalCost
+            Discounts = order.Discounts
+                .Select(d => d.ToString())
+                .ToList(),
+            TotalDiscount = order.TotalDiscount,
+            TotalCost = order.TotalCost
         };
-    }
 
     internal static Order ToOrder(this CalculateOrderCostCommand calculateOrderCostCommand)
         => new(
@@ -36,9 +30,9 @@ internal static class CalculateOrderCostFactory
             calculateOrderCostCommand?.SpeedyShipping);
 
     private static List<Parcel> ToParcels(this CalculateOrderCostCommand calculateOrderCostCommand)
-        => calculateOrderCostCommand?.Parcels.Any() is not true
-        ? Enumerable.Empty<Parcel>().ToList()
-        : calculateOrderCostCommand.Parcels
+        => calculateOrderCostCommand?.Parcels.Any() is true
+        ? calculateOrderCostCommand.Parcels
             .Select(p => new Parcel(p.Length, p.Width, p.Height, p.Weight, p.HeavyParcel))
-            .ToList();
+            .ToList()
+        : Enumerable.Empty<Parcel>().ToList();
 }

@@ -12,6 +12,7 @@ public record Parcel
     private const decimal MediumDimension = 50;
     private const decimal LargeDimension = 100;
 
+    public Guid Id { get; } = Guid.NewGuid();
     public PositiveDecimal Length { get; init; }
     public PositiveDecimal Width { get; init; }
     public PositiveDecimal Height { get; init; }
@@ -70,7 +71,7 @@ public record Parcel
         return GetSuccessOrErrors(errors);
     }
 
-    public static Result<Success, Error> Validate(List<Parcel> parcels)
+    public static Result<Success, Error> Validate(IReadOnlyList<Parcel> parcels)
     {
         if (parcels?.Any() is not true)
             return new ParcelsCollectionIsEmptyError();
